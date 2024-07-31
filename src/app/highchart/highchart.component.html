@@ -1,8 +1,20 @@
+<h1>HighChart</h1>
 <div class="grid__container">
   <highcharts-chart
     [Highcharts]="Highcharts"
     [options]="chartOptions[0]"
-    style="width: 100%; height: 400px; display: block;">
+    style="width: 100%; height: 100%; display: block;">
+  </highcharts-chart>
+  <highcharts-chart
+    [Highcharts]="Highcharts"
+    [options]="chartOptions[1]"
+    style="width: 100%; height: 100%; display: block;">
+  </highcharts-chart>
+  <highcharts-chart
+    [Highcharts]="Highcharts"
+    [options]="chartOptions[2]"
+    class="grid__col__span"
+    style="width: 100%; height: 100%; display: block;">
   </highcharts-chart>
 
 </div>

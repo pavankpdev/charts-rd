@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { AgCharts } from 'ag-charts-angular';
 import { AgChartOptions } from 'ag-charts-community';
 import { AgChartOptions as AgChartOptionsE } from "ag-charts-enterprise";
+import "ag-charts-enterprise";
 
 @Component({
   selector: 'app-agchart',
@@ -16,7 +17,7 @@ export class AgchartComponent {
   public options3: AgChartOptionsE;
   constructor() {
     this.options = {
-      // Data: Data to be displayed in the chart
+      height: 600,
       data: [
         { year: '2024', part1: 25, part2: 71, part3: 4, total: 100 },
         { year: '2025', part1: 0, part2: 69, part3: 0, total: 69 },
@@ -213,51 +214,13 @@ export class AgchartComponent {
       },
     };
     this.options3 = {
+      height: 600,
       data: [
-        {
-          financials: "Income\nTax",
-          amount: 185,
-        },
-        {
-          financials: "VAT",
-          amount: 145,
-        },
-        {
-          financials: "NI",
-          amount: 134,
-        },
-        {
-          financials: "Corp\nTax",
-          amount: 55,
-        },
-        {
-          financials: "Council\nTax",
-          amount: 34,
-        },
-        {
-          financials: "Social\nProtection",
-          amount: -252,
-        },
-        {
-          financials: "Health",
-          amount: -155,
-        },
-        {
-          financials: "Education",
-          amount: -112,
-        },
-        {
-          financials: "Defence",
-          amount: -65,
-        },
-        {
-          financials: "Debt\nInterest",
-          amount: -63,
-        },
-        {
-          financials: "Housing",
-          amount: -31,
-        },
+        { year: 'Baseline', supplyChain: 3.45, inhouse: 4.39, logistics: 8.92, usePhase: 12.24, other: 16.51, fill: 0 },
+        { year: 'Reduction', supplyChain: 2.00, inhouse: 2.00, logistics: 1.00, usePhase: 1.00, other: 4.00, fill: 19.02 },
+        { year: 'Reduced', supplyChain: 3.33, inhouse: 3.39, logistics: 7.28, usePhase: 10.24, other: 14.51, fill: 0 },
+        { year: 'Compensation', supplyChain: 3.33, inhouse: 3.19, logistics: 6.45, usePhase: 9.24, other: 15.02, fill: 17.02 },
+        { year: 'Compensated', supplyChain: 3.02, inhouse: 2.39, logistics: 6.29, usePhase: 9.02, other: 15.51, fill: 0 }
       ],
       title: {
         text: 'DKI IS 2024',
@@ -267,17 +230,113 @@ export class AgchartComponent {
       },
       series: [
         {
-          type: "waterfall",
-          xKey: "financials",
-          xName: "Financials",
-          yKey: "amount",
-          yName: "Amount",
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'fill',
+          yName: 'Fill',
+          stacked: true,
+          fill: 'rgba(0, 0, 0, 0)', // Completely transparent
+          stroke: 'rgba(0, 0, 0, 0)', // Completely transparent
+          label: {
+            enabled: false, // Disable labels for filler
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'other',
+          yName: 'Other',
+          stacked: true,
+          fill: '#FFA07A',
+          stroke: '#FFA07A',
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}%`,
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'usePhase',
+          yName: 'Use Phase',
+          stacked: true,
+          fill: '#FF6347',
+          stroke: '#FF6347',
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}%`,
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'logistics',
+          yName: 'Logistics',
+          stacked: true,
+          fill: '#CD5C5C',
+          stroke: '#CD5C5C',
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}%`,
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'inhouse',
+          yName: 'Inhouse',
+          stacked: true,
+          fill: '#8B0000',
+          stroke: '#8B0000',
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}%`,
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'year',
+          yKey: 'supplyChain',
+          yName: 'Supply Chain',
+          stacked: true,
+          fill: '#A52A2A',
+          stroke: '#A52A2A',
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}%`,
+          },
+        },
+        {
+          type: 'line',
+          xKey: 'year',
+          yKey: 'total',
+          yName: 'Total',
+          stroke: '#1E90FF',
+          strokeWidth: 3,
+          marker: {
+            size: 10,
+            fill: '#1E90FF',
+            stroke: '#1E90FF',
+          },
         },
       ],
       axes: [
         {
           type: 'category',
           position: 'bottom',
+          title: {
+            text: 'Year',
+          },
         },
         {
           type: 'number',
@@ -286,15 +345,9 @@ export class AgchartComponent {
             text: 'Values',
           },
           min: 0,
-          max: 70,
-          label: {
-            formatter: (params) => `${params.value}`,
-          },
+          max: 80, // Adjusted to make space for total values
         },
       ],
-      legend: {
-        enabled: false,
-      },
-    };
+    }
   }
 }
