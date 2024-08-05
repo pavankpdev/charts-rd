@@ -1,0 +1,20 @@
+<h1>AG Charts</h1>
+<div class="grid__container chart__view">
+  <ag-charts [options]="options" class="chart"></ag-charts>
+</div>
+<div class="grid__container">
+  <ag-grid-angular
+    [rowData]="rowData"
+    [columnDefs]="colDefs"
+    [enableCharts]="enableCharts"
+    [enableRangeSelection]="enableRangeSelection"
+    [sideBar]="sideBar"
+    [popupParent]="popupParent"
+    [createChartContainer]="createChartContainer"
+    [gridOptions]="gridOptions"
+    class="ag-theme-quartz grid__col__span"
+    style="height: 500px;"
+    *ngIf="rowData.length"
+  />
+</div>
+

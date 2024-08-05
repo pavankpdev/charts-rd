@@ -5,6 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@ag-grid-community/client-side-row-model':
+    specifier: ^32.0.2
+    version: 32.0.2
+  '@ag-grid-community/core':
+    specifier: ^32.0.2
+    version: 32.0.2
+  '@ag-grid-enterprise/charts-enterprise':
+    specifier: ^32.0.2
+    version: 32.0.2
   '@angular/animations':
     specifier: ^18.1.0
     version: 18.1.2(@angular/core@18.1.2)
@@ -29,6 +38,9 @@ dependencies:
   '@angular/router':
     specifier: ^18.1.2
     version: 18.1.2(@angular/common@18.1.2)(@angular/core@18.1.2)(@angular/platform-browser@18.1.2)(rxjs@7.8.1)
+  '@faker-js/faker':
+    specifier: ^8.4.1
+    version: 8.4.1
   ag-charts-angular:
     specifier: ^10.0.2
     version: 10.0.2(@angular/common@18.1.2)(@angular/core@18.1.2)(ag-charts-community@10.0.2)
@@ -38,6 +50,18 @@ dependencies:
   ag-charts-enterprise:
     specifier: ^10.0.2
     version: 10.0.2
+  ag-grid-angular:
+    specifier: ^32.0.2
+    version: 32.0.2(@angular/common@18.1.2)(@angular/core@18.1.2)(ag-grid-community@32.0.2)
+  ag-grid-charts-enterprise:
+    specifier: ^32.0.2
+    version: 32.0.2
+  ag-grid-community:
+    specifier: ^32.0.2
+    version: 32.0.2
+  ag-grid-enterprise:
+    specifier: ^32.0.2
+    version: 32.0.2
   angular-highcharts:
     specifier: ^17.0.1
     version: 17.0.1(@angular/common@18.1.2)(@angular/core@18.1.2)
@@ -97,11 +121,60 @@ devDependencies:
   karma-jasmine-html-reporter:
     specifier: ~2.1.0
     version: 2.1.0(jasmine-core@5.1.2)(karma-jasmine@5.1.0)(karma@6.4.4)
+  tsx:
+    specifier: ^4.16.5
+    version: 4.16.5
   typescript:
     specifier: ~5.5.2
     version: 5.5.4
 
 packages:
+
+  /@ag-grid-community/client-side-row-model@32.0.2:
+    resolution: {integrity: sha512-NuwnXsogowbtceLRF8YpAgqj/KU/nPb+FFgwajPwAoxAVzc0qQITMSV/PQN5T5YR9HSaaQQFyyjsHiPAcEoTlw==}
+    dependencies:
+      '@ag-grid-community/core': 32.0.2
+      tslib: 2.6.3
+    dev: false
+
+  /@ag-grid-community/core@32.0.2:
+    resolution: {integrity: sha512-Pm4KpWuoHtn/eXgzunX0R10TZt6ze3KIz89Q/pzl2ZE+GdEjn6vPmgG+lMb/z90FgFwnMuIOQiz1qk0x5/xaHA==}
+    dependencies:
+      ag-charts-types: 10.0.2
+      tslib: 2.6.3
+    dev: false
+
+  /@ag-grid-enterprise/charts-enterprise@32.0.2:
+    resolution: {integrity: sha512-abJ8zDyxUsYDbEqIKp5MGaDhACBsj2FLKvW6RB6o7xvx3wU6dfsdnb2BkR5MghvUa2TB5Y84NSRR4tp+w6F7aQ==}
+    dependencies:
+      '@ag-grid-community/core': 32.0.2
+      '@ag-grid-enterprise/charts': 32.0.2
+      '@ag-grid-enterprise/core': 32.0.2
+      ag-charts-community: 10.0.2
+      ag-charts-enterprise: 10.0.2
+    dev: false
+
+  /@ag-grid-enterprise/charts@32.0.2:
+    resolution: {integrity: sha512-gn4JJNCLX0X/AQ1qgAijw/NwDI/OwUa0m9jitdxW/5nFQklRqx7U3MyqsYmc3TDcBu2nQkO8GQ+GaKUh4KnItA==}
+    dependencies:
+      '@ag-grid-community/core': 32.0.2
+      '@ag-grid-enterprise/core': 32.0.2
+      '@ag-grid-enterprise/range-selection': 32.0.2
+      ag-charts-community: 10.0.2
+    dev: false
+
+  /@ag-grid-enterprise/core@32.0.2:
+    resolution: {integrity: sha512-ksHpdHqgg7OR5XMQWZ51vvvN8APhYkbtwuHG7B6QNP6JmdVfa88kMCpvb08So/JR4lIlvhunKHhosI41EjSBkw==}
+    dependencies:
+      '@ag-grid-community/core': 32.0.2
+    dev: false
+
+  /@ag-grid-enterprise/range-selection@32.0.2:
+    resolution: {integrity: sha512-S+Z1d0e9Z1SGB0M/sLgv9wiiXcw/yfTKbiLKP67638lZzgrQIQuPIgLBv+FVFNktAkCgI6XuBwFMHviIsEhhWA==}
+    dependencies:
+      '@ag-grid-community/core': 32.0.2
+      '@ag-grid-enterprise/core': 32.0.2
+    dev: false
 
   /@ampproject/remapping@2.3.0:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
@@ -2074,6 +2147,11 @@ packages:
     dev: true
     optional: true
 
+  /@faker-js/faker@8.4.1:
+    resolution: {integrity: sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0, npm: '>=6.14.13'}
+    dev: false
+
   /@inquirer/checkbox@2.4.4:
     resolution: {integrity: sha512-2NWoY9NfFFfQZgNfisI4ttg5yfWB2NfxdQ6xC5prywPvyG1RWETKUNZlqzMnZv/HbNdE2CkhZPSK8hl6WBRiFA==}
     engines: {node: '>=18'}
@@ -3253,6 +3331,40 @@ packages:
 
   /ag-charts-types@10.0.2:
     resolution: {integrity: sha512-Nxo5slHOXlaeg0gRIsVnovAosQzzlYfWJtdDy0Aq/VvpJru/PJ+5i2c9aCyEhgRxhBjImsoegwkgRj7gNOWV6Q==}
+    dev: false
+
+  /ag-grid-angular@32.0.2(@angular/common@18.1.2)(@angular/core@18.1.2)(ag-grid-community@32.0.2):
+    resolution: {integrity: sha512-GU9m0hCgBK6DqrXJ2R8r1Vm+CutCUbgrEXtsQPWlQh9AipW9khvbMF0NzuAYpZrGnk8KI9E9+jhzWhT4ZWLOTw==}
+    peerDependencies:
+      '@angular/common': '>= 16.0.0'
+      '@angular/core': '>= 16.0.0'
+      ag-grid-community: 32.0.2
+    dependencies:
+      '@angular/common': 18.1.2(@angular/core@18.1.2)(rxjs@7.8.1)
+      '@angular/core': 18.1.2(rxjs@7.8.1)(zone.js@0.14.8)
+      ag-grid-community: 32.0.2
+      tslib: 2.6.3
+    dev: false
+
+  /ag-grid-charts-enterprise@32.0.2:
+    resolution: {integrity: sha512-E99PLbYNd5djMfIJqfvV65I/j7fchzd3LO9SuLgITa8fXTpqAi6Layr6Wq8DlgNEghhp1QTBxWFZxhah6UKY1g==}
+    dependencies:
+      ag-charts-community: 10.0.2
+      ag-charts-enterprise: 10.0.2
+      ag-grid-community: 32.0.2
+    dev: false
+
+  /ag-grid-community@32.0.2:
+    resolution: {integrity: sha512-vLJJUjnsG9hNK41GNuW2EHu1W264kxA/poOpcX4kmyrjU5Uzvelsbj3HdKAO9POV28iqyRdKGYfAWdn8QzA7KA==}
+    dependencies:
+      ag-charts-types: 10.0.2
+    dev: false
+
+  /ag-grid-enterprise@32.0.2:
+    resolution: {integrity: sha512-bp4CvUYYITJhPIfAyT6DkvnXamQ/ZVB3exnNJ4BPmQnfvWyu1hjN+FNE19Jx8U4/FjPi7Yut/lYR09sbAlGrjQ==}
+    dependencies:
+      ag-charts-community: 10.0.2
+      ag-grid-community: 32.0.2
     dev: false
 
   /agent-base@7.1.1:
@@ -4649,6 +4761,12 @@ packages:
   /get-stream@6.0.1:
     resolution: {integrity: sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg==}
     engines: {node: '>=10'}
+    dev: true
+
+  /get-tsconfig@4.7.6:
+    resolution: {integrity: sha512-ZAqrLlu18NbDdRaHq+AKXzAmqIUPswPWKUchfytdAjiRFnCe5ojG2bstg6mRiZabkKfCoL/e98pbBELIV/YCeA==}
+    dependencies:
+      resolve-pkg-maps: 1.0.0
     dev: true
 
   /glob-parent@5.1.2:
@@ -6598,6 +6716,10 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
+  /resolve-pkg-maps@1.0.0:
+    resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
+    dev: true
+
   /resolve-url-loader@5.0.0:
     resolution: {integrity: sha512-uZtduh8/8srhBoMx//5bwqjQ+rfYOUq8zC9NrMUGtjBiGTtFJM42s58/36+hTqeqINcnYe08Nj3LkK9lW4N8Xg==}
     engines: {node: '>=12'}
@@ -7380,6 +7502,17 @@ packages:
 
   /tslib@2.6.3:
     resolution: {integrity: sha512-xNvxJEOUiWPGhUuUdQgAJPKOOJfGnIyKySOc09XkKsgdUV/3E2zvwZYdejjmRgPCgcym1juLH3226yA7sEFJKQ==}
+
+  /tsx@4.16.5:
+    resolution: {integrity: sha512-ArsiAQHEW2iGaqZ8fTA1nX0a+lN5mNTyuGRRO6OW3H/Yno1y9/t1f9YOI1Cfoqz63VAthn++ZYcbDP7jPflc+A==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+    dependencies:
+      esbuild: 0.21.5
+      get-tsconfig: 4.7.6
+    optionalDependencies:
+      fsevents: 2.3.3
+    dev: true
 
   /tuf-js@2.2.1:
     resolution: {integrity: sha512-GwIJau9XaA8nLVbUXsN3IlFi7WmQ48gBUrl3FTkkL/XLu/POhBzfmX9hd33FNMX1qAsfl6ozO1iMmW9NC8YniA==}
