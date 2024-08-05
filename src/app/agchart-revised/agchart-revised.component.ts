@@ -34,6 +34,7 @@ export class AgchartRevisedComponent {
   public enableCharts = true
   public enableRangeSelection = true
   public sideBar: SideBarDef | string | string[] | boolean | null = "filters";
+  public rowSelection: "multiple" | "single" | undefined = "multiple";
   public popupParent: HTMLElement | null = document.body;
 
   gridOptions = {
@@ -79,7 +80,7 @@ export class AgchartRevisedComponent {
               .map((logi) => ({
                 Name: logi.name,
                 Emission: logi.emission,
-                "Reported Date": logi.reportedDate,
+                "Reported Date": Number(logi.reportedDate.slice(0,4)),
                 Category: logi.category,
                 Market: logi.market
               }))
@@ -90,7 +91,7 @@ export class AgchartRevisedComponent {
 
       return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
 
-    }
+    },
   }
 
   rowData: any[] = [];
@@ -101,34 +102,7 @@ export class AgchartRevisedComponent {
     { field: "Emission" },
     {
       field: "Reported Date",
-      filter: 'agDateColumnFilter',
-      filterParams: {
-        comparator: (filterLocalDateAtMidnight: Date, cellValue: string) => {
-          if (!cellValue) return -1; // If the cell value is null or undefined
-
-          // Assume cellValue is in the format "YYYY-MM-DD"
-          const dateParts = cellValue.split("-");
-          const cellDate = new Date(
-            Number(dateParts[0]),  // Year
-            Number(dateParts[1]) - 1,  // Month (0-based index)
-            Number(dateParts[2])  // Day
-          );
-
-          if (filterLocalDateAtMidnight.getTime() === cellDate.getTime()) {
-            return 0;  // Dates are equal
-          }
-          if (cellDate < filterLocalDateAtMidnight) {
-            return -1;  // Cell date is before the filter date
-          }
-          if (cellDate > filterLocalDateAtMidnight) {
-            return 1;  // Cell date is after the filter date
-          }
-          return 0;
-        },
-        minValidYear: 2000,
-        maxValidYear: 2024,  // Updated to match your dataset range
-        inRangeFloatingFilterDateFormat: "Do MMM YYYY",
-      }
+      filter: 'agNumberColumnFilter',
     },
     { field: "Category",
       filter: "agSetColumnFilter",
@@ -196,6 +170,57 @@ export class AgchartRevisedComponent {
                 Category: logi.category,
                 Market: logi.market
               })))
+              this.reportChart = {
+                data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
+                  Name: logi.name,
+                  Emission: logi.emission,
+                  "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                  Category: logi.category,
+                  Market: logi.market
+                }))),
+                title: {
+                  text: "Portfolio Composition",
+                },
+                series: [
+                  {
+                    type: 'bar',
+                    xKey: 'Category',
+                    yKey: 'Emission',
+                    yName: 'Emission from respective category',
+                    listeners: {
+                      nodeClick: (event: any) => {
+                        console.log(event)
+                        this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
+                          Name: logi.name,
+                          Emission: logi.emission,
+                          "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                          Category: logi.category,
+                          Market: logi.market
+                        })))
+
+                        this.reportChart = {
+                          data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
+                            Name: logi.name,
+                            Emission: logi.emission,
+                            "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                            Category: logi.category,
+                            Market: logi.market
+                          }))),
+                          series: [
+                            {
+                              type: "bar",
+                              xKey: 'Name',
+                              yKey: 'Emission',
+                              yName: "Name"
+                            },
+
+                          ]
+                        }
+                      }
+                    }
+                  },
+                ],
+              };
             }
           },
           label: {
@@ -218,7 +243,7 @@ export class AgchartRevisedComponent {
               this.rowData = (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
                 Name: logi.name,
                 Emission: logi.emission,
-                "Reported Date": logi.reportedDate,
+                "Reported Date": Number(logi.reportedDate.slice(0,4)),
                 Category: logi.category,
                 Market: logi.market
               })))
@@ -244,7 +269,7 @@ export class AgchartRevisedComponent {
               this.rowData = (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
                 Name: logi.name,
                 Emission: logi.emission,
-                "Reported Date": logi.reportedDate,
+                "Reported Date": Number(logi.reportedDate.slice(0,4)),
                 Category: logi.category,
                 Market: logi.market
               })))
