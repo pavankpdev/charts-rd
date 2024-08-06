@@ -15,3 +15,19 @@ export type AggregatedDataset = {
 export type MarketBasedEmissionByYear = Pick<AggregatedDataset, "market" | "year"> & {
   emissionPercentage: number
 }
+
+export type PaginatedType<T> = {
+  page: number,
+  limit: number,
+  totalItems: number,
+  totalPages: number,
+  results: T[]
+}
+
+export type ProcessedDataset = {
+  Name: string;
+  Emission: number;
+  "Reported Date": number;
+  Category: string;
+  Market: string;
+};

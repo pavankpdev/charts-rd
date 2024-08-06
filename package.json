@@ -30,11 +30,13 @@
     "ag-grid-community": "^32.0.2",
     "ag-grid-enterprise": "^32.0.2",
     "angular-highcharts": "^17.0.1",
+    "axios": "^1.7.3",
     "chart.js": "^4.4.3",
     "chartjs-plugin-datalabels": "^2.2.0",
     "highcharts": "^11.4.6",
     "highcharts-angular": "^4.0.1",
     "ng2-charts": "^6.0.1",
+    "qs": "^6.13.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"

@@ -31,7 +31,7 @@ import { faker } from '@faker-js/faker';
   const data = [];
 
   for (const market of markets) {
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 10000; i++) {
       const category = faker.helpers.arrayElement(categories);
       const component = faker.helpers.arrayElement(category.components);
       const emission = faker.number.float({min: 1, max: 4})
