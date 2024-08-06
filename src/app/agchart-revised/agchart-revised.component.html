@@ -1,6 +1,9 @@
 <h1>AG Charts</h1>
 <div class="grid__container chart__view">
-  <ag-charts *ngIf="options" [options]="options" class="chart"></ag-charts>
+  <div>
+    <button *ngIf="chartChanged" (click)="resetChart()">Back</button>
+    <ag-charts *ngIf="options" [options]="options" class="chart"></ag-charts>
+  </div>
 </div>
 <div class="grid__container" *ngIf="gridOptions">
   <ag-grid-angular
