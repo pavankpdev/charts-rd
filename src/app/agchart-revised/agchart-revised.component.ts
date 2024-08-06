@@ -38,7 +38,9 @@ ModuleRegistry.registerModules([ClientSideRowModelModule, GridChartsModule]);
   styleUrl: './agchart-revised.component.scss'
 })
 export class AgchartRevisedComponent {
-  public options: AgChartOptions | null = null;;
+
+  public stateStack: { chartOptions: any; gridOptions: any }[] = [];
+  public options: AgChartOptions | null = null;
   public reportChart: AgChartOptions | null = null;
   public report: Dataset[] = [];
   public enableCharts = true
@@ -91,7 +93,6 @@ export class AgchartRevisedComponent {
       }
     };
   }
-
 
   createChartContainer(chartRef: ChartRef): void {
     const eChart = chartRef.chartElement;
@@ -205,8 +206,10 @@ export class AgchartRevisedComponent {
           stroke: '#8B4513',
           listeners: {
             nodeClick: async (event: any) => {
-              console.log({eventL1: event});
-              this.options = null;
+              this.stateStack.push({
+                chartOptions: this.options,
+                gridOptions: {}
+              } as any);
 
               const datasource = this.createServerSideDatasource({
                 market: event.yKey,
@@ -242,7 +245,10 @@ export class AgchartRevisedComponent {
                     nodeClickRange: 'nearest',
                     listeners: {
                       nodeClick: async (event: any) => {
-
+                        this.stateStack.push({
+                          chartOptions: this.options,
+                          gridOptions: filter
+                        } as any);
                         const datasource = this.createServerSideDatasource({
                           category: event.datum.Category,
                         });
@@ -319,8 +325,10 @@ export class AgchartRevisedComponent {
           stroke: '#DAA520',
           listeners: {
             nodeClick: async (event: any) => {
-              console.log({eventL1: event});
-              this.options = null;
+              this.stateStack.push({
+                chartOptions: this.options,
+                gridOptions: {}
+              } as any);
 
               const datasource = this.createServerSideDatasource({
                 market: event.yKey,
@@ -356,7 +364,10 @@ export class AgchartRevisedComponent {
                     nodeClickRange: 'nearest',
                     listeners: {
                       nodeClick: async (event: any) => {
-
+                        this.stateStack.push({
+                          chartOptions: this.options,
+                          gridOptions: filter
+                        } as any);
                         const datasource = this.createServerSideDatasource({
                           category: event.datum.Category,
                         });
@@ -433,8 +444,10 @@ export class AgchartRevisedComponent {
           stroke: '#FFD700',
           listeners: {
             nodeClick: async (event: any) => {
-              console.log({eventL1: event});
-              this.options = null;
+              this.stateStack.push({
+                chartOptions: this.options,
+                gridOptions: {}
+              } as any);
 
               const datasource = this.createServerSideDatasource({
                 market: event.yKey,
@@ -470,7 +483,10 @@ export class AgchartRevisedComponent {
                     nodeClickRange: 'nearest',
                     listeners: {
                       nodeClick: async (event: any) => {
-
+                        this.stateStack.push({
+                          chartOptions: this.options,
+                          gridOptions: filter
+                        } as any);
                         const datasource = this.createServerSideDatasource({
                           category: event.datum.Category,
                         });
@@ -563,14 +579,28 @@ export class AgchartRevisedComponent {
   }
 
   resetChart() {
-    overViewChartDataset()
-      .then(({data: overViewChartDate}) => {
-        if(!this.options)
-        this.options = this.createInitialOverviewChart(overViewChartDate);
-      })
+    console.log(this.stateStack.length)
+    console.log((this.stateStack.length - 1) === 0)
+    if (this.stateStack.length > 0) {
+      const previousState = this.stateStack.pop();
+      this.options = previousState?.chartOptions || null;
+      const datasource = this.createServerSideDatasource(previousState?.gridOptions)
+      if (!this.gridApi) {
+        this.initializeGridOptions(datasource);
+      } else {
+        this.gridApi?.setGridOption("serverSideDatasource",datasource);
+      }
 
-    this.gridApi = null;
-    this.gridOptions = null;
+      // this.gridOptions = previousState?.gridOptions || null;
+      // if (this.gridOptions) {
+      //   this.gridApi?.setGridOption("serverSideDatasource", this.gridOptions as any) ;
+      // }
+    }
+    if(this.stateStack.length === 0) {
+      this.gridOptions = null
+      this.gridApi = null
+      return
+    }
   }
 
   constructor() {

@@ -1,7 +1,7 @@
 <h1>AG Charts</h1>
 <div class="grid__container chart__view">
   <div>
-    <button *ngIf="chartChanged" (click)="resetChart()">Back</button>
+    <button *ngIf="stateStack.length" (click)="resetChart()">Back</button>
     <ag-charts *ngIf="options" [options]="options" class="chart"></ag-charts>
   </div>
 </div>
