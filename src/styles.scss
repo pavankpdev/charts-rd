@@ -46,3 +46,7 @@ body {
   border-top: 1px solid var(--ag-border-color);
   height: 100%;
 }
+
+ngx-spinner {
+  z-index: 9999 !important;
+}

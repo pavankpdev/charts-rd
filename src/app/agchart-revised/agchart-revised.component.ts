@@ -19,7 +19,6 @@ import {
 import { ModuleRegistry } from "@ag-grid-community/core";
 import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
 import { GridChartsModule } from "@ag-grid-enterprise/charts-enterprise";
-import deepClone from "rfdc";
 import  "ag-grid-charts-enterprise";
 
 /* Core Data Grid CSS */
@@ -27,13 +26,14 @@ import 'ag-grid-community/styles/ag-grid.css';
 /* Quartz Theme Specific CSS */
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import {makeRequest} from "../utils/request";
+import {NgxSpinnerComponent, NgxSpinnerService} from "ngx-spinner";
 
 ModuleRegistry.registerModules([ClientSideRowModelModule, GridChartsModule]);
 
 @Component({
   selector: 'app-agchart-revised',
   standalone: true,
-  imports: [AgCharts, NgFor, NgIf, AgGridAngular],
+  imports: [AgCharts, NgFor, NgIf, AgGridAngular, NgxSpinnerComponent],
   templateUrl: './agchart-revised.component.html',
   styleUrl: './agchart-revised.component.scss'
 })
@@ -71,6 +71,14 @@ export class AgchartRevisedComponent {
       filter: "agSetColumnFilter",
     }
   ];
+
+  constructor(private spinner: NgxSpinnerService) {
+    overViewChartDataset()
+      .then(({data: overViewChartDate}) => {
+        if(!this.options)
+          this.options = this.createInitialOverviewChart(overViewChartDate);
+      })
+  }
 
   createServerSideDatasource(filters?: Record<string, any>) {
     return {
@@ -206,106 +214,120 @@ export class AgchartRevisedComponent {
           stroke: '#8B4513',
           listeners: {
             nodeClick: async (event: any) => {
-              this.stateStack.push({
-                chartOptions: this.options,
-                gridOptions: {}
-              } as any);
+              try {
+                this.spinner.show()
+                this.stateStack.push({
+                  chartOptions: this.options,
+                  gridOptions: {}
+                } as any);
 
-              const datasource = this.createServerSideDatasource({
-                market: event.yKey,
-                year: event?.datum.year
-              });
+                const datasource = this.createServerSideDatasource({
+                  market: event.yKey,
+                  year: event?.datum.year
+                });
 
-              if (!this.gridApi) {
-                this.initializeGridOptions(datasource);
-              } else {
-                this.gridApi?.setGridOption("serverSideDatasource",datasource);
-              }
+                if (!this.gridApi) {
+                  this.initializeGridOptions(datasource);
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                }
 
-              // Fetch new data for the updated chart
+                // Fetch new data for the updated chart
 
-              const filter = {
-                market: event.yKey,
-                year: event?.datum.year
-              }
+                const filter = {
+                  market: event.yKey,
+                  year: event?.datum.year
+                }
 
-              const newData = await getChartDataByFilters(filter);
+                const newData = await getChartDataByFilters(filter);
 
-              this.options = {
-                data: newData,
-                title: {
-                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
-                },
-                series: [
-                  {
-                    type: 'bar',
-                    xKey: 'Category',
-                    yKey: 'Emission',
-                    yName: 'Emission from respective category',
-                    nodeClickRange: 'nearest',
-                    listeners: {
-                      nodeClick: async (event: any) => {
-                        this.stateStack.push({
-                          chartOptions: this.options,
-                          gridOptions: filter
-                        } as any);
-                        const datasource = this.createServerSideDatasource({
-                          category: event.datum.Category,
-                        });
+                this.options = {
+                  data: newData,
+                  title: {
+                    text: `Data of ${filter.market} Market for the year ${filter.year}`,
+                  },
+                  series: [
+                    {
+                      type: 'bar',
+                      xKey: 'Category',
+                      yKey: 'Emission',
+                      yName: 'Emission from respective category',
+                      nodeClickRange: 'nearest',
+                      listeners: {
+                        nodeClick: async (event: any) => {
+                          try {
+                            this.spinner.show()
+                            this.stateStack.push({
+                              chartOptions: this.options,
+                              gridOptions: filter
+                            } as any);
+                            const datasource = this.createServerSideDatasource({
+                              category: event.datum.Category,
+                            });
 
-                        if (!this.gridApi) {
-                          this.initializeGridOptions(datasource);
-                        } else {
-                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
-                        }
-
-                        const newData = await getChartDataByFilters({
-                          category: event.datum.Category,
-                        });
-
-                        this.options = {
-                          data: newData,
-                          title: {
-                            text: `Emission data of the ${event.datum.Category} category`
-                          },
-                          series: [
-                            {
-                              type: "bar",
-                              xKey: 'Name',
-                              yKey: 'Emission',
-                              yName: "Name"
-                            },
-                          ],
-                          axes: [
-                            {
-                              type: 'category',
-                              position: 'bottom',
-                            },
-                            {
-                              type: 'number',
-                              position: 'left',
-                              min: 0,
-                              max: 5,
+                            if (!this.gridApi) {
+                              this.initializeGridOptions(datasource);
+                            } else {
+                              this.gridApi?.setGridOption("serverSideDatasource",datasource);
                             }
-                          ]
+
+                            const newData = await getChartDataByFilters({
+                              category: event.datum.Category,
+                            });
+
+                            this.options = {
+                              data: newData,
+                              title: {
+                                text: `Emission data of the ${event.datum.Category} category`
+                              },
+                              series: [
+                                {
+                                  type: "bar",
+                                  xKey: 'Name',
+                                  yKey: 'Emission',
+                                  yName: "Name"
+                                },
+                              ],
+                              axes: [
+                                {
+                                  type: 'category',
+                                  position: 'bottom',
+                                },
+                                {
+                                  type: 'number',
+                                  position: 'left',
+                                  min: 0,
+                                  max: 5,
+                                }
+                              ]
+                            }
+                          } catch (err) {
+                            alert("Some error occured!")
+                          } finally {
+                            this.spinner.hide()
+                          }
                         }
                       }
+                    },
+                  ],
+                  axes: [
+                    {
+                      type: 'category',
+                      position: 'bottom',
+                    },
+                    {
+                      type: 'number',
+                      position: 'left',
+                      min: 0,
+                      max: 5,
                     }
-                  },
-                ],
-                axes: [
-                  {
-                    type: 'category',
-                    position: 'bottom',
-                  },
-                  {
-                    type: 'number',
-                    position: 'left',
-                    min: 0,
-                    max: 5,
-                  }
-                ]
-              };
+                  ]
+                };
+              } catch (err) {
+                alert("Some error occured!")
+              } finally {
+                this.spinner.hide()
+              }
             }
           },
           label: {
@@ -325,106 +347,120 @@ export class AgchartRevisedComponent {
           stroke: '#DAA520',
           listeners: {
             nodeClick: async (event: any) => {
-              this.stateStack.push({
-                chartOptions: this.options,
-                gridOptions: {}
-              } as any);
+              try {
+                this.spinner.show()
+                this.stateStack.push({
+                  chartOptions: this.options,
+                  gridOptions: {}
+                } as any);
 
-              const datasource = this.createServerSideDatasource({
-                market: event.yKey,
-                year: event?.datum.year
-              });
+                const datasource = this.createServerSideDatasource({
+                  market: event.yKey,
+                  year: event?.datum.year
+                });
 
-              if (!this.gridApi) {
-                this.initializeGridOptions(datasource);
-              } else {
-                this.gridApi?.setGridOption("serverSideDatasource",datasource);
-              }
+                if (!this.gridApi) {
+                  this.initializeGridOptions(datasource);
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                }
 
-              // Fetch new data for the updated chart
+                // Fetch new data for the updated chart
 
-              const filter = {
-                market: event.yKey,
-                year: event?.datum.year
-              }
+                const filter = {
+                  market: event.yKey,
+                  year: event?.datum.year
+                }
 
-              const newData = await getChartDataByFilters(filter);
+                const newData = await getChartDataByFilters(filter);
 
-              this.options = {
-                data: newData,
-                title: {
-                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
-                },
-                series: [
-                  {
-                    type: 'bar',
-                    xKey: 'Category',
-                    yKey: 'Emission',
-                    yName: 'Emission from respective category',
-                    nodeClickRange: 'nearest',
-                    listeners: {
-                      nodeClick: async (event: any) => {
-                        this.stateStack.push({
-                          chartOptions: this.options,
-                          gridOptions: filter
-                        } as any);
-                        const datasource = this.createServerSideDatasource({
-                          category: event.datum.Category,
-                        });
+                this.options = {
+                  data: newData,
+                  title: {
+                    text: `Data of ${filter.market} Market for the year ${filter.year}`,
+                  },
+                  series: [
+                    {
+                      type: 'bar',
+                      xKey: 'Category',
+                      yKey: 'Emission',
+                      yName: 'Emission from respective category',
+                      nodeClickRange: 'nearest',
+                      listeners: {
+                        nodeClick: async (event: any) => {
+                          try {
+                            this.spinner.show()
+                            this.stateStack.push({
+                              chartOptions: this.options,
+                              gridOptions: filter
+                            } as any);
+                            const datasource = this.createServerSideDatasource({
+                              category: event.datum.Category,
+                            });
 
-                        if (!this.gridApi) {
-                          this.initializeGridOptions(datasource);
-                        } else {
-                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
-                        }
-
-                        const newData = await getChartDataByFilters({
-                          category: event.datum.Category,
-                        });
-
-                        this.options = {
-                          data: newData,
-                          title: {
-                            text: `Emission data of the ${event.datum.Category} category`
-                          },
-                          series: [
-                            {
-                              type: "bar",
-                              xKey: 'Name',
-                              yKey: 'Emission',
-                              yName: "Name"
-                            },
-                          ],
-                          axes: [
-                            {
-                              type: 'category',
-                              position: 'bottom',
-                            },
-                            {
-                              type: 'number',
-                              position: 'left',
-                              min: 0,
-                              max: 5,
+                            if (!this.gridApi) {
+                              this.initializeGridOptions(datasource);
+                            } else {
+                              this.gridApi?.setGridOption("serverSideDatasource",datasource);
                             }
-                          ]
+
+                            const newData = await getChartDataByFilters({
+                              category: event.datum.Category,
+                            });
+
+                            this.options = {
+                              data: newData,
+                              title: {
+                                text: `Emission data of the ${event.datum.Category} category`
+                              },
+                              series: [
+                                {
+                                  type: "bar",
+                                  xKey: 'Name',
+                                  yKey: 'Emission',
+                                  yName: "Name"
+                                },
+                              ],
+                              axes: [
+                                {
+                                  type: 'category',
+                                  position: 'bottom',
+                                },
+                                {
+                                  type: 'number',
+                                  position: 'left',
+                                  min: 0,
+                                  max: 5,
+                                }
+                              ]
+                            }
+                          } catch (err) {
+                            alert("Some error occured!")
+                          } finally {
+                            this.spinner.hide()
+                          }
                         }
                       }
+                    },
+                  ],
+                  axes: [
+                    {
+                      type: 'category',
+                      position: 'bottom',
+                    },
+                    {
+                      type: 'number',
+                      position: 'left',
+                      min: 0,
+                      max: 5,
                     }
-                  },
-                ],
-                axes: [
-                  {
-                    type: 'category',
-                    position: 'bottom',
-                  },
-                  {
-                    type: 'number',
-                    position: 'left',
-                    min: 0,
-                    max: 5,
-                  }
-                ]
-              };
+                  ]
+                };
+              } catch (err) {
+                alert("Some error occured!")
+              } finally {
+                this.spinner.hide()
+              }
             }
           },
           label: {
@@ -444,106 +480,120 @@ export class AgchartRevisedComponent {
           stroke: '#FFD700',
           listeners: {
             nodeClick: async (event: any) => {
-              this.stateStack.push({
-                chartOptions: this.options,
-                gridOptions: {}
-              } as any);
+              try {
+                this.spinner.show()
+                this.stateStack.push({
+                  chartOptions: this.options,
+                  gridOptions: {}
+                } as any);
 
-              const datasource = this.createServerSideDatasource({
-                market: event.yKey,
-                year: event?.datum.year
-              });
+                const datasource = this.createServerSideDatasource({
+                  market: event.yKey,
+                  year: event?.datum.year
+                });
 
-              if (!this.gridApi) {
-                this.initializeGridOptions(datasource);
-              } else {
-                this.gridApi?.setGridOption("serverSideDatasource",datasource);
-              }
+                if (!this.gridApi) {
+                  this.initializeGridOptions(datasource);
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                }
 
-              // Fetch new data for the updated chart
+                // Fetch new data for the updated chart
 
-              const filter = {
-                market: event.yKey,
-                year: event?.datum.year
-              }
+                const filter = {
+                  market: event.yKey,
+                  year: event?.datum.year
+                }
 
-              const newData = await getChartDataByFilters(filter);
+                const newData = await getChartDataByFilters(filter);
 
-              this.options = {
-                data: newData,
-                title: {
-                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
-                },
-                series: [
-                  {
-                    type: 'bar',
-                    xKey: 'Category',
-                    yKey: 'Emission',
-                    yName: 'Emission from respective category',
-                    nodeClickRange: 'nearest',
-                    listeners: {
-                      nodeClick: async (event: any) => {
-                        this.stateStack.push({
-                          chartOptions: this.options,
-                          gridOptions: filter
-                        } as any);
-                        const datasource = this.createServerSideDatasource({
-                          category: event.datum.Category,
-                        });
+                this.options = {
+                  data: newData,
+                  title: {
+                    text: `Data of ${filter.market} Market for the year ${filter.year}`,
+                  },
+                  series: [
+                    {
+                      type: 'bar',
+                      xKey: 'Category',
+                      yKey: 'Emission',
+                      yName: 'Emission from respective category',
+                      nodeClickRange: 'nearest',
+                      listeners: {
+                        nodeClick: async (event: any) => {
+                          try {
+                            this.spinner.show()
+                            this.stateStack.push({
+                              chartOptions: this.options,
+                              gridOptions: filter
+                            } as any);
+                            const datasource = this.createServerSideDatasource({
+                              category: event.datum.Category,
+                            });
 
-                        if (!this.gridApi) {
-                          this.initializeGridOptions(datasource);
-                        } else {
-                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
-                        }
-
-                        const newData = await getChartDataByFilters({
-                          category: event.datum.Category,
-                        });
-
-                        this.options = {
-                          data: newData,
-                          title: {
-                            text: `Emission data of the ${event.datum.Category} category`
-                          },
-                          series: [
-                            {
-                              type: "bar",
-                              xKey: 'Name',
-                              yKey: 'Emission',
-                              yName: "Name"
-                            },
-                          ],
-                          axes: [
-                            {
-                              type: 'category',
-                              position: 'bottom',
-                            },
-                            {
-                              type: 'number',
-                              position: 'left',
-                              min: 0,
-                              max: 5,
+                            if (!this.gridApi) {
+                              this.initializeGridOptions(datasource);
+                            } else {
+                              this.gridApi?.setGridOption("serverSideDatasource",datasource);
                             }
-                          ]
+
+                            const newData = await getChartDataByFilters({
+                              category: event.datum.Category,
+                            });
+
+                            this.options = {
+                              data: newData,
+                              title: {
+                                text: `Emission data of the ${event.datum.Category} category`
+                              },
+                              series: [
+                                {
+                                  type: "bar",
+                                  xKey: 'Name',
+                                  yKey: 'Emission',
+                                  yName: "Name"
+                                },
+                              ],
+                              axes: [
+                                {
+                                  type: 'category',
+                                  position: 'bottom',
+                                },
+                                {
+                                  type: 'number',
+                                  position: 'left',
+                                  min: 0,
+                                  max: 5,
+                                }
+                              ]
+                            }
+                          } catch (err) {
+                            alert("Some error occured!")
+                          } finally {
+                            this.spinner.hide()
+                          }
                         }
                       }
+                    },
+                  ],
+                  axes: [
+                    {
+                      type: 'category',
+                      position: 'bottom',
+                    },
+                    {
+                      type: 'number',
+                      position: 'left',
+                      min: 0,
+                      max: 5,
                     }
-                  },
-                ],
-                axes: [
-                  {
-                    type: 'category',
-                    position: 'bottom',
-                  },
-                  {
-                    type: 'number',
-                    position: 'left',
-                    min: 0,
-                    max: 5,
-                  }
-                ]
-              };
+                  ]
+                };
+              } catch (err) {
+                alert("Some error occured!")
+              } finally {
+                this.spinner.hide()
+              }
             }
           },
           label: {
@@ -579,8 +629,7 @@ export class AgchartRevisedComponent {
   }
 
   resetChart() {
-    console.log(this.stateStack.length)
-    console.log((this.stateStack.length - 1) === 0)
+    this.spinner.show()
     if (this.stateStack.length > 0) {
       const previousState = this.stateStack.pop();
       this.options = previousState?.chartOptions || null;
@@ -599,15 +648,9 @@ export class AgchartRevisedComponent {
     if(this.stateStack.length === 0) {
       this.gridOptions = null
       this.gridApi = null
-      return
     }
+    this.spinner.hide()
   }
 
-  constructor() {
-  overViewChartDataset()
-    .then(({data: overViewChartDate}) => {
-      if(!this.options)
-      this.options = this.createInitialOverviewChart(overViewChartDate);
-    })
-  }
+
 }

@@ -4,8 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AgchartComponent } from './agchart/agchart.component';
 import { ChartjsComponent } from './chartjs/chartjs.component';
 import { HighchartComponent } from './highchart/highchart.component';
-import { HighchartsChartModule } from 'highcharts-angular';
-import {AppComponent} from "./app.component";
+import { NgxSpinnerModule } from "ngx-spinner";
 import {AgchartRevisedComponent} from "./agchart-revised/agchart-revised.component";
 
 export const routes: Routes = [
@@ -21,6 +20,7 @@ export const routes: Routes = [
 @NgModule({
   imports: [
     RouterModule.forRoot(routes),
+    NgxSpinnerModule.forRoot({ type: 'ball-spin-clockwise' })
   ],
   exports: [RouterModule]
 })
