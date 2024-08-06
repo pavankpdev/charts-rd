@@ -19,6 +19,7 @@ import {
 import { ModuleRegistry } from "@ag-grid-community/core";
 import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
 import { GridChartsModule } from "@ag-grid-enterprise/charts-enterprise";
+import deepClone from "rfdc";
 import  "ag-grid-charts-enterprise";
 
 /* Core Data Grid CSS */
@@ -118,6 +119,70 @@ export class AgchartRevisedComponent {
       });
   }
 
+  initializeGridOptions(datasource: IServerSideDatasource) {
+    this.gridOptions = {
+      rowModelType: "serverSide",
+      cacheBlockSize: 100,
+      getContextMenuItems: (params: GetContextMenuItemsParams) => {
+        const defaultItems = params.defaultItems || [];
+        const cellRanges = params.api.getCellRanges()
+
+        let selectedCategories: string[] = [];
+
+        const isCategoryColumnSelected = cellRanges?.some((range) =>
+          range.columns.some((col) => col.getColId() === "Category")
+        )
+
+        if (isCategoryColumnSelected && cellRanges) {
+          cellRanges.forEach(range => {
+            if (range.columns.some((col) => col.getColId() === "Category")) {
+              const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+              const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+
+              for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
+                const rowNode = params.api.getRowNode(rowIndex.toString());
+                if (rowNode) {
+                  const categoryValue = params.api.getCellValue({
+                    rowNode,
+                    colKey: 'Category',
+                    useFormatter: true
+                  });
+                  if (categoryValue && !selectedCategories.includes(categoryValue)) {
+                    selectedCategories.push(categoryValue);
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        const customItems: (string | MenuItemDef)[] = [
+          {
+            name: 'Open selected category',
+            action: () => {
+              this.rowData = logisticsDataset
+                .filter((logi) => selectedCategories.includes(logi.category))
+                .map((logi) => ({
+                  Name: logi.name,
+                  Emission: logi.emission,
+                  "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                  Category: logi.category,
+                  Market: logi.market
+                }))
+            },
+          },
+          'separator',
+        ];
+
+        return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
+      },
+      serverSideDatasource: datasource,
+      onGridReady: (event: GridReadyEvent<any>) => {
+        this.gridApi = event.api;
+      }
+    }
+  }
+
   createInitialOverviewChart(overViewChartDate: any):AgChartOptions {
     return {
       height: 600,
@@ -140,88 +205,33 @@ export class AgchartRevisedComponent {
           stroke: '#8B4513',
           listeners: {
             nodeClick: async (event: any) => {
-              if(!this.gridApi) {
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+              console.log({eventL1: event});
+              this.options = null;
 
-                    let selectedCategories: string[] = [];
+              const datasource = this.createServerSideDatasource({
+                market: event.yKey,
+                year: event?.datum.year
+              });
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
-
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
-                              }
-                            }
-                          }
-                        }
-                      });
-                    }
-
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
-                              Name: logi.name,
-                              Emission: logi.emission,
-                              "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                              Category: logi.category,
-                              Market: logi.market
-                            }))
-                        },
-                      },
-                      'separator',
-                    ];
-
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  onGridReady: (event: GridReadyEvent<any>) => {
-                    this.gridApi = event.api;
-                  }
-                }
+              if (!this.gridApi) {
+                this.initializeGridOptions(datasource);
               } else {
-                this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
-                  market: event.yKey,
-                  year: event?.datum.year
-                }))
+                this.gridApi?.setGridOption("serverSideDatasource",datasource);
               }
 
+              // Fetch new data for the updated chart
+
+              const filter = {
+                market: event.yKey,
+                year: event?.datum.year
+              }
+
+              const newData = await getChartDataByFilters(filter);
+
               this.options = {
-                data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
-                  Name: logi.name,
-                  Emission: logi.emission,
-                  "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                  Category: logi.category,
-                  Market: logi.market
-                }))),
+                data: newData,
                 title: {
-                  text: "Portfolio Composition",
+                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
                 },
                 series: [
                   {
@@ -229,25 +239,29 @@ export class AgchartRevisedComponent {
                     xKey: 'Category',
                     yKey: 'Emission',
                     yName: 'Emission from respective category',
+                    nodeClickRange: 'nearest',
                     listeners: {
-                      nodeClick: (event: any) => {
-                        console.log(event)
-                        this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                          Name: logi.name,
-                          Emission: logi.emission,
-                          "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                          Category: logi.category,
-                          Market: logi.market
-                        })))
+                      nodeClick: async (event: any) => {
 
-                        this.reportChart = {
-                          data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                            Name: logi.name,
-                            Emission: logi.emission,
-                            "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                            Category: logi.category,
-                            Market: logi.market
-                          }))),
+                        const datasource = this.createServerSideDatasource({
+                          category: event.datum.Category,
+                        });
+
+                        if (!this.gridApi) {
+                          this.initializeGridOptions(datasource);
+                        } else {
+                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                        }
+
+                        const newData = await getChartDataByFilters({
+                          category: event.datum.Category,
+                        });
+
+                        this.options = {
+                          data: newData,
+                          title: {
+                            text: `Emission data of the ${event.datum.Category} category`
+                          },
                           series: [
                             {
                               type: "bar",
@@ -255,15 +269,37 @@ export class AgchartRevisedComponent {
                               yKey: 'Emission',
                               yName: "Name"
                             },
-
+                          ],
+                          axes: [
+                            {
+                              type: 'category',
+                              position: 'bottom',
+                            },
+                            {
+                              type: 'number',
+                              position: 'left',
+                              min: 0,
+                              max: 5,
+                            }
                           ]
                         }
                       }
                     }
                   },
                 ],
+                axes: [
+                  {
+                    type: 'category',
+                    position: 'bottom',
+                  },
+                  {
+                    type: 'number',
+                    position: 'left',
+                    min: 0,
+                    max: 5,
+                  }
+                ]
               };
-              this.chartChanged = true
             }
           },
           label: {
@@ -283,88 +319,33 @@ export class AgchartRevisedComponent {
           stroke: '#DAA520',
           listeners: {
             nodeClick: async (event: any) => {
-              if(!this.gridApi) {
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+              console.log({eventL1: event});
+              this.options = null;
 
-                    let selectedCategories: string[] = [];
+              const datasource = this.createServerSideDatasource({
+                market: event.yKey,
+                year: event?.datum.year
+              });
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
-
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
-                              }
-                            }
-                          }
-                        }
-                      });
-                    }
-
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
-                              Name: logi.name,
-                              Emission: logi.emission,
-                              "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                              Category: logi.category,
-                              Market: logi.market
-                            }))
-                        },
-                      },
-                      'separator',
-                    ];
-
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  onGridReady: (event: GridReadyEvent<any>) => {
-                    this.gridApi = event.api;
-                  }
-                }
+              if (!this.gridApi) {
+                this.initializeGridOptions(datasource);
               } else {
-                this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
-                  market: event.yKey,
-                  year: event?.datum.year
-                }))
+                this.gridApi?.setGridOption("serverSideDatasource",datasource);
               }
 
+              // Fetch new data for the updated chart
+
+              const filter = {
+                market: event.yKey,
+                year: event?.datum.year
+              }
+
+              const newData = await getChartDataByFilters(filter);
+
               this.options = {
-                data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
-                  Name: logi.name,
-                  Emission: logi.emission,
-                  "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                  Category: logi.category,
-                  Market: logi.market
-                }))),
+                data: newData,
                 title: {
-                  text: "Portfolio Composition",
+                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
                 },
                 series: [
                   {
@@ -372,25 +353,29 @@ export class AgchartRevisedComponent {
                     xKey: 'Category',
                     yKey: 'Emission',
                     yName: 'Emission from respective category',
+                    nodeClickRange: 'nearest',
                     listeners: {
-                      nodeClick: (event: any) => {
-                        console.log(event)
-                        this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                          Name: logi.name,
-                          Emission: logi.emission,
-                          "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                          Category: logi.category,
-                          Market: logi.market
-                        })))
+                      nodeClick: async (event: any) => {
 
-                        this.reportChart = {
-                          data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                            Name: logi.name,
-                            Emission: logi.emission,
-                            "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                            Category: logi.category,
-                            Market: logi.market
-                          }))),
+                        const datasource = this.createServerSideDatasource({
+                          category: event.datum.Category,
+                        });
+
+                        if (!this.gridApi) {
+                          this.initializeGridOptions(datasource);
+                        } else {
+                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                        }
+
+                        const newData = await getChartDataByFilters({
+                          category: event.datum.Category,
+                        });
+
+                        this.options = {
+                          data: newData,
+                          title: {
+                            text: `Emission data of the ${event.datum.Category} category`
+                          },
                           series: [
                             {
                               type: "bar",
@@ -398,15 +383,37 @@ export class AgchartRevisedComponent {
                               yKey: 'Emission',
                               yName: "Name"
                             },
-
+                          ],
+                          axes: [
+                            {
+                              type: 'category',
+                              position: 'bottom',
+                            },
+                            {
+                              type: 'number',
+                              position: 'left',
+                              min: 0,
+                              max: 5,
+                            }
                           ]
                         }
                       }
                     }
                   },
                 ],
+                axes: [
+                  {
+                    type: 'category',
+                    position: 'bottom',
+                  },
+                  {
+                    type: 'number',
+                    position: 'left',
+                    min: 0,
+                    max: 5,
+                  }
+                ]
               };
-              this.chartChanged = true
             }
           },
           label: {
@@ -426,88 +433,33 @@ export class AgchartRevisedComponent {
           stroke: '#FFD700',
           listeners: {
             nodeClick: async (event: any) => {
-              if(!this.gridApi) {
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+              console.log({eventL1: event});
+              this.options = null;
 
-                    let selectedCategories: string[] = [];
+              const datasource = this.createServerSideDatasource({
+                market: event.yKey,
+                year: event?.datum.year
+              });
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
-
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
-                              }
-                            }
-                          }
-                        }
-                      });
-                    }
-
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
-                              Name: logi.name,
-                              Emission: logi.emission,
-                              "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                              Category: logi.category,
-                              Market: logi.market
-                            }))
-                        },
-                      },
-                      'separator',
-                    ];
-
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  onGridReady: (event: GridReadyEvent<any>) => {
-                    this.gridApi = event.api;
-                  }
-                }
+              if (!this.gridApi) {
+                this.initializeGridOptions(datasource);
               } else {
-                this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
-                  market: event.yKey,
-                  year: event?.datum.year
-                }))
+                this.gridApi?.setGridOption("serverSideDatasource",datasource);
               }
 
+              // Fetch new data for the updated chart
+
+              const filter = {
+                market: event.yKey,
+                year: event?.datum.year
+              }
+
+              const newData = await getChartDataByFilters(filter);
+
               this.options = {
-                data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
-                  Name: logi.name,
-                  Emission: logi.emission,
-                  "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                  Category: logi.category,
-                  Market: logi.market
-                }))),
+                data: newData,
                 title: {
-                  text: "Portfolio Composition",
+                  text: `Data of ${filter.market} Market for the year ${filter.year}`,
                 },
                 series: [
                   {
@@ -515,25 +467,29 @@ export class AgchartRevisedComponent {
                     xKey: 'Category',
                     yKey: 'Emission',
                     yName: 'Emission from respective category',
+                    nodeClickRange: 'nearest',
                     listeners: {
-                      nodeClick: (event: any) => {
-                        console.log(event)
-                        this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                          Name: logi.name,
-                          Emission: logi.emission,
-                          "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                          Category: logi.category,
-                          Market: logi.market
-                        })))
+                      nodeClick: async (event: any) => {
 
-                        this.reportChart = {
-                          data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                            Name: logi.name,
-                            Emission: logi.emission,
-                            "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                            Category: logi.category,
-                            Market: logi.market
-                          }))),
+                        const datasource = this.createServerSideDatasource({
+                          category: event.datum.Category,
+                        });
+
+                        if (!this.gridApi) {
+                          this.initializeGridOptions(datasource);
+                        } else {
+                          this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                        }
+
+                        const newData = await getChartDataByFilters({
+                          category: event.datum.Category,
+                        });
+
+                        this.options = {
+                          data: newData,
+                          title: {
+                            text: `Emission data of the ${event.datum.Category} category`
+                          },
                           series: [
                             {
                               type: "bar",
@@ -541,16 +497,37 @@ export class AgchartRevisedComponent {
                               yKey: 'Emission',
                               yName: "Name"
                             },
-
+                          ],
+                          axes: [
+                            {
+                              type: 'category',
+                              position: 'bottom',
+                            },
+                            {
+                              type: 'number',
+                              position: 'left',
+                              min: 0,
+                              max: 5,
+                            }
                           ]
                         }
                       }
                     }
                   },
                 ],
+                axes: [
+                  {
+                    type: 'category',
+                    position: 'bottom',
+                  },
+                  {
+                    type: 'number',
+                    position: 'left',
+                    min: 0,
+                    max: 5,
+                  }
+                ]
               };
-
-              this.chartChanged = true
             }
           },
           label: {
@@ -588,6 +565,7 @@ export class AgchartRevisedComponent {
   resetChart() {
     overViewChartDataset()
       .then(({data: overViewChartDate}) => {
+        if(!this.options)
         this.options = this.createInitialOverviewChart(overViewChartDate);
       })
 
@@ -598,6 +576,7 @@ export class AgchartRevisedComponent {
   constructor() {
   overViewChartDataset()
     .then(({data: overViewChartDate}) => {
+      if(!this.options)
       this.options = this.createInitialOverviewChart(overViewChartDate);
     })
   }

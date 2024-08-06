@@ -86,6 +86,9 @@ dependencies:
   qs:
     specifier: ^6.13.0
     version: 6.13.0
+  rfdc:
+    specifier: ^1.4.1
+    version: 1.4.1
   rxjs:
     specifier: ~7.8.0
     version: 7.8.1
@@ -6808,7 +6811,6 @@ packages:
 
   /rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
-    dev: true
 
   /rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
