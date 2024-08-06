@@ -44,9 +44,8 @@ export class AgchartRevisedComponent {
   public enableRangeSelection = true
   public sideBar: SideBarDef | string | string[] | boolean | null = "filters";
   public rowSelection: "multiple" | "single" | undefined = "multiple";
-  public rowModelType: RowModelType | undefined = 'serverSide';
   public popupParent: HTMLElement | null = document.body;
-  public gridApi!: GridApi;
+  public gridApi: GridApi | null  = null;
 
   public gridOptions: GridOptions<any> | null = null
 
@@ -118,16 +117,8 @@ export class AgchartRevisedComponent {
       });
   }
 
-  initializeGrid(datasource: IServerSideDatasource) {
-    this.gridOptions = {
-      onGridReady: (event: GridReadyEvent<any>) => {
-        this.gridApi = event.api;
-        this.gridApi.setGridOption("serverSideDatasource", datasource);
-      }
-    };
-  }
-
   constructor() {
+
   overViewChartDataset()
     .then(({data: overViewChartDate}) => {
       this.options = {
@@ -151,125 +142,129 @@ export class AgchartRevisedComponent {
             stroke: '#8B4513',
             listeners: {
               nodeClick: async (event: any) => {
+                if(!this.gridApi) {
+                  this.gridOptions = {
+                    rowModelType: "serverSide",
+                    cacheBlockSize: 100,
+                    getContextMenuItems: (params: GetContextMenuItemsParams) => {
+                      const defaultItems = params.defaultItems || [];
+                      const cellRanges = params.api.getCellRanges()
 
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+                      let selectedCategories: string[] = [];
 
-                    let selectedCategories: string[] = [];
+                      const isCategoryColumnSelected = cellRanges?.some((range) =>
+                        range.columns.some((col) => col.getColId() === "Category")
+                      )
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
+                      if (isCategoryColumnSelected && cellRanges) {
+                        cellRanges.forEach(range => {
+                          if (range.columns.some((col) => col.getColId() === "Category")) {
+                            const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+                            const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
 
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
+                            for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
+                              const rowNode = params.api.getRowNode(rowIndex.toString());
+                              if (rowNode) {
+                                const categoryValue = params.api.getCellValue({
+                                  rowNode,
+                                  colKey: 'Category',
+                                  useFormatter: true
+                                });
+                                if (categoryValue && !selectedCategories.includes(categoryValue)) {
+                                  selectedCategories.push(categoryValue);
+                                }
                               }
                             }
                           }
-                        }
-                      });
-                    }
+                        });
+                      }
 
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
+                      const customItems: (string | MenuItemDef)[] = [
+                        {
+                          name: 'Open selected category',
+                          action: () => {
+                            this.rowData = logisticsDataset
+                              .filter((logi) => selectedCategories.includes(logi.category))
+                              .map((logi) => ({
+                                Name: logi.name,
+                                Emission: logi.emission,
+                                "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                                Category: logi.category,
+                                Market: logi.market
+                              }))
+                          },
+                        },
+                        'separator',
+                      ];
+
+                      return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
+                    },
+                    serverSideDatasource: this.createServerSideDatasource({
+                      market: event.yKey,
+                      year: event?.datum.year
+                    }),
+                    onGridReady: (event: GridReadyEvent<any>) => {
+                      this.gridApi = event.api;
+                    }
+                  }
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
+                    market: event.yKey,
+                    year: event?.datum.year
+                  }))
+                }
+
+                this.reportChart = {
+                  data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
+                    Name: logi.name,
+                    Emission: logi.emission,
+                    "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                    Category: logi.category,
+                    Market: logi.market
+                  }))),
+                  title: {
+                    text: "Portfolio Composition",
+                  },
+                  series: [
+                    {
+                      type: 'bar',
+                      xKey: 'Category',
+                      yKey: 'Emission',
+                      yName: 'Emission from respective category',
+                      listeners: {
+                        nodeClick: (event: any) => {
+                          console.log(event)
+                          this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
+                            Name: logi.name,
+                            Emission: logi.emission,
+                            "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                            Category: logi.category,
+                            Market: logi.market
+                          })))
+
+                          this.reportChart = {
+                            data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
                               Name: logi.name,
                               Emission: logi.emission,
                               "Reported Date": Number(logi.reportedDate.slice(0,4)),
                               Category: logi.category,
                               Market: logi.market
-                            }))
-                        },
-                      },
-                      'separator',
-                    ];
+                            }))),
+                            series: [
+                              {
+                                type: "bar",
+                                xKey: 'Name',
+                                yKey: 'Emission',
+                                yName: "Name"
+                              },
 
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  datasource: {
-                    getRows(params: IGetRowsParams) {
-                      console.log({params})
-                    }
-                  }
-                }
-
-                // this.reportChart = {
-                //   data: (logisticsDataset.filter((logi) => logi.market === event.yKey && new Date(logi.reportedDate).getFullYear() === event?.datum.year).map((logi) => ({
-                //     Name: logi.name,
-                //     Emission: logi.emission,
-                //     "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                //     Category: logi.category,
-                //     Market: logi.market
-                //   }))),
-                //   title: {
-                //     text: "Portfolio Composition",
-                //   },
-                //   series: [
-                //     {
-                //       type: 'bar',
-                //       xKey: 'Category',
-                //       yKey: 'Emission',
-                //       yName: 'Emission from respective category',
-                //       listeners: {
-                //         nodeClick: (event: any) => {
-                //           console.log(event)
-                //           this.rowData = (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                //             Name: logi.name,
-                //             Emission: logi.emission,
-                //             "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                //             Category: logi.category,
-                //             Market: logi.market
-                //           })))
-                //
-                //           this.reportChart = {
-                //             data: (logisticsDataset.filter((logi) => logi.category === event.datum.Category).map((logi) => ({
-                //               Name: logi.name,
-                //               Emission: logi.emission,
-                //               "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                //               Category: logi.category,
-                //               Market: logi.market
-                //             }))),
-                //             series: [
-                //               {
-                //                 type: "bar",
-                //                 xKey: 'Name',
-                //                 yKey: 'Emission',
-                //                 yName: "Name"
-                //               },
-                //
-                //             ]
-                //           }
-                //         }
-                //       }
-                //     },
-                //   ],
-                // };
+                            ]
+                          }
+                        }
+                      }
+                    },
+                  ],
+                };
               }
             },
             label: {
@@ -289,71 +284,76 @@ export class AgchartRevisedComponent {
             stroke: '#DAA520',
             listeners: {
               nodeClick: async (event: any) => {
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+                if(!this.gridApi) {
+                  this.gridOptions = {
+                    rowModelType: "serverSide",
+                    cacheBlockSize: 100,
+                    getContextMenuItems: (params: GetContextMenuItemsParams) => {
+                      const defaultItems = params.defaultItems || [];
+                      const cellRanges = params.api.getCellRanges()
 
-                    let selectedCategories: string[] = [];
+                      let selectedCategories: string[] = [];
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
+                      const isCategoryColumnSelected = cellRanges?.some((range) =>
+                        range.columns.some((col) => col.getColId() === "Category")
+                      )
 
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+                      if (isCategoryColumnSelected && cellRanges) {
+                        cellRanges.forEach(range => {
+                          if (range.columns.some((col) => col.getColId() === "Category")) {
+                            const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+                            const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
 
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
+                            for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
+                              const rowNode = params.api.getRowNode(rowIndex.toString());
+                              if (rowNode) {
+                                const categoryValue = params.api.getCellValue({
+                                  rowNode,
+                                  colKey: 'Category',
+                                  useFormatter: true
+                                });
+                                if (categoryValue && !selectedCategories.includes(categoryValue)) {
+                                  selectedCategories.push(categoryValue);
+                                }
                               }
                             }
                           }
-                        }
-                      });
-                    }
+                        });
+                      }
 
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
-                              Name: logi.name,
-                              Emission: logi.emission,
-                              "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                              Category: logi.category,
-                              Market: logi.market
-                            }))
+                      const customItems: (string | MenuItemDef)[] = [
+                        {
+                          name: 'Open selected category',
+                          action: () => {
+                            this.rowData = logisticsDataset
+                              .filter((logi) => selectedCategories.includes(logi.category))
+                              .map((logi) => ({
+                                Name: logi.name,
+                                Emission: logi.emission,
+                                "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                                Category: logi.category,
+                                Market: logi.market
+                              }))
+                          },
                         },
-                      },
-                      'separator',
-                    ];
+                        'separator',
+                      ];
 
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  datasource: {
-                    getRows(params: IGetRowsParams) {
-                      console.log({params})
+                      return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
+                    },
+                    serverSideDatasource: this.createServerSideDatasource({
+                      market: event.yKey,
+                      year: event?.datum.year
+                    }),
+                    onGridReady: (event: GridReadyEvent<any>) => {
+                      this.gridApi = event.api;
                     }
                   }
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
+                    market: event.yKey,
+                    year: event?.datum.year
+                  }))
                 }
               }
             },
@@ -374,71 +374,76 @@ export class AgchartRevisedComponent {
             stroke: '#FFD700',
             listeners: {
               nodeClick: async (event: any) => {
-                this.gridOptions = {
-                  rowModelType: "serverSide",
-                  cacheBlockSize: 100,
-                  getContextMenuItems: (params: GetContextMenuItemsParams) => {
-                    const defaultItems = params.defaultItems || [];
-                    const cellRanges = params.api.getCellRanges()
+                if(!this.gridApi) {
+                  this.gridOptions = {
+                    rowModelType: "serverSide",
+                    cacheBlockSize: 100,
+                    getContextMenuItems: (params: GetContextMenuItemsParams) => {
+                      const defaultItems = params.defaultItems || [];
+                      const cellRanges = params.api.getCellRanges()
 
-                    let selectedCategories: string[] = [];
+                      let selectedCategories: string[] = [];
 
-                    const isCategoryColumnSelected = cellRanges?.some((range) =>
-                      range.columns.some((col) => col.getColId() === "Category")
-                    )
+                      const isCategoryColumnSelected = cellRanges?.some((range) =>
+                        range.columns.some((col) => col.getColId() === "Category")
+                      )
 
-                    if (isCategoryColumnSelected && cellRanges) {
-                      cellRanges.forEach(range => {
-                        if (range.columns.some((col) => col.getColId() === "Category")) {
-                          const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
-                          const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+                      if (isCategoryColumnSelected && cellRanges) {
+                        cellRanges.forEach(range => {
+                          if (range.columns.some((col) => col.getColId() === "Category")) {
+                            const startRowIndex = Math.min(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
+                            const endRowIndex = Math.max(range.startRow?.rowIndex || 0, range.endRow?.rowIndex || 0);
 
-                          for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
-                            const rowNode = params.api.getRowNode(rowIndex.toString());
-                            if (rowNode) {
-                              const categoryValue = params.api.getCellValue({
-                                rowNode,
-                                colKey: 'Category',
-                                useFormatter: true
-                              });
-                              if (categoryValue && !selectedCategories.includes(categoryValue)) {
-                                selectedCategories.push(categoryValue);
+                            for (let rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
+                              const rowNode = params.api.getRowNode(rowIndex.toString());
+                              if (rowNode) {
+                                const categoryValue = params.api.getCellValue({
+                                  rowNode,
+                                  colKey: 'Category',
+                                  useFormatter: true
+                                });
+                                if (categoryValue && !selectedCategories.includes(categoryValue)) {
+                                  selectedCategories.push(categoryValue);
+                                }
                               }
                             }
                           }
-                        }
-                      });
-                    }
+                        });
+                      }
 
-                    const customItems: (string | MenuItemDef)[] = [
-                      {
-                        name: 'Open selected category',
-                        action: () => {
-                          this.rowData = logisticsDataset
-                            .filter((logi) => selectedCategories.includes(logi.category))
-                            .map((logi) => ({
-                              Name: logi.name,
-                              Emission: logi.emission,
-                              "Reported Date": Number(logi.reportedDate.slice(0,4)),
-                              Category: logi.category,
-                              Market: logi.market
-                            }))
+                      const customItems: (string | MenuItemDef)[] = [
+                        {
+                          name: 'Open selected category',
+                          action: () => {
+                            this.rowData = logisticsDataset
+                              .filter((logi) => selectedCategories.includes(logi.category))
+                              .map((logi) => ({
+                                Name: logi.name,
+                                Emission: logi.emission,
+                                "Reported Date": Number(logi.reportedDate.slice(0,4)),
+                                Category: logi.category,
+                                Market: logi.market
+                              }))
+                          },
                         },
-                      },
-                      'separator',
-                    ];
+                        'separator',
+                      ];
 
-                    return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
-                  },
-                  serverSideDatasource: this.createServerSideDatasource({
-                    market: event.yKey,
-                    year: event?.datum.year
-                  }),
-                  datasource: {
-                    getRows(params: IGetRowsParams) {
-                      console.log({params})
+                      return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
+                    },
+                    serverSideDatasource: this.createServerSideDatasource({
+                      market: event.yKey,
+                      year: event?.datum.year
+                    }),
+                    onGridReady: (event: GridReadyEvent<any>) => {
+                      this.gridApi = event.api;
                     }
                   }
+                } else {
+                  this.gridApi?.setGridOption("serverSideDatasource", this.createServerSideDatasource({
+                    market: event.yKey,
+                    year: event?.datum.year
+                  }))
                 }
               }
             },
