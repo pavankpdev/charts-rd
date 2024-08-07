@@ -2,7 +2,7 @@ import axios, {AxiosRequestConfig, AxiosResponse} from "axios";
 import qs from "qs";
 
 export const makeRequest = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL: "https://charts-rd-backend.onrender.com",
 })
 
 export const makeRequestWithQS = async <T> (
