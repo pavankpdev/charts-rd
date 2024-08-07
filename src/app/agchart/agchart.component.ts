@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import {AfterViewInit, Component} from '@angular/core';
 import { AgCharts } from 'ag-charts-angular';
 import { AgChartOptions } from 'ag-charts-community';
 import { AgChartOptions as AgChartOptionsE } from "ag-charts-enterprise";
 import "ag-charts-enterprise";
+import {AgBarSeriesItemStylerParams} from "@ag-grid-enterprise/charts-enterprise";
 
 @Component({
   selector: 'app-agchart',
@@ -11,7 +12,7 @@ import "ag-charts-enterprise";
   templateUrl: './agchart.component.html',
   styleUrl: './agchart.component.scss'
 })
-export class AgchartComponent {
+export class AgchartComponent implements AfterViewInit {
   public options: AgChartOptions;
   public options2: AgChartOptions;
   public options3: AgChartOptionsE;
@@ -152,7 +153,19 @@ export class AgchartComponent {
           yKey: 'compensation',
           yName: 'IS value incl. compensation',
           stacked: true,
-          fill: '#A52A2A',
+          itemStyler: (param: AgBarSeriesItemStylerParams<any>) => {
+            if(param?.datum?.year === "2024")
+              return {
+                fill: 'rgb(63, 127, 255)',
+                stroke: 'black',
+                strokeWidth: 2,
+                background: "green",
+                lineDash: [2,3]
+              }
+
+            return {}
+          },
+
           stroke: '#A52A2A',
           label: {
             enabled: true,
@@ -348,6 +361,30 @@ export class AgchartComponent {
           max: 80, // Adjusted to make space for total values
         },
       ],
+    }
+  }
+
+  ngAfterViewInit() {
+    const svg = document.querySelector('svg');
+    if (svg) {
+      const defs = svg.querySelector('defs') || svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'defs'));
+      const pattern = defs.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'pattern'));
+      pattern.setAttribute('id', 'diagonalHatch');
+      pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+      pattern.setAttribute('width', '10');
+      pattern.setAttribute('height', '10');
+
+      const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path1.setAttribute('d', 'M0,0 l10,10');
+      path1.setAttribute('stroke', '#A52A2A');
+      path1.setAttribute('stroke-width', '2');
+      pattern.appendChild(path1);
+
+      const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path2.setAttribute('d', 'M10,0 l-10,10');
+      path2.setAttribute('stroke', '#A52A2A');
+      path2.setAttribute('stroke-width', '2');
+      pattern.appendChild(path2);
     }
   }
 }

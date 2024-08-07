@@ -6,6 +6,7 @@ import { ChartjsComponent } from './chartjs/chartjs.component';
 import { HighchartComponent } from './highchart/highchart.component';
 import { NgxSpinnerModule } from "ngx-spinner";
 import {AgchartRevisedComponent} from "./agchart-revised/agchart-revised.component";
+import {ChartComponent} from "./agchart/chart.component";
 
 export const routes: Routes = [
   { path: 'agchart', component: AgchartComponent },
@@ -22,6 +23,7 @@ export const routes: Routes = [
     RouterModule.forRoot(routes),
     NgxSpinnerModule.forRoot({ type: 'ball-spin-clockwise' })
   ],
+  declarations:[ChartComponent],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }
