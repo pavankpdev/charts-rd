@@ -1,11 +1,5 @@
 <h1>AG Charts</h1>
-<ngx-spinner
-  bdColor="rgba(51, 51, 51, 0.8)"
-  size="medium"
-  color="#fff"
-  type="ball-spin-clockwise"
-  [fullScreen]="true"
-></ngx-spinner>
+<ngx-spinner bdColor = "rgba(0, 0, 0, 0.8)" size = "medium" color = "#fff" type = "ball-spin-clockwise" [fullScreen] = "true"><p style="color: white" > Loading... </p></ngx-spinner>
 <div class="grid__container chart__view">
   <div>
     <button *ngIf="stateStack.length" (click)="resetChart()">Back</button>
@@ -16,12 +10,11 @@
   <ag-grid-angular
     [enableCharts]="enableCharts"
     [enableRangeSelection]="enableRangeSelection"
-    [sideBar]="sideBar"
     [popupParent]="popupParent"
     [createChartContainer]="createChartContainer"
     [gridOptions]="gridOptions"
     [rowSelection]="rowSelection"
-    [columnDefs]="colDefs"
+    [sideBar]="sideBar"
     class="ag-theme-quartz grid__col__span"
     style="height: 500px;"
   />

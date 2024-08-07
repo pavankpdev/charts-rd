@@ -2,7 +2,7 @@ import axios, {AxiosRequestConfig, AxiosResponse} from "axios";
 import qs from "qs";
 
 export const makeRequest = axios.create({
-  baseURL: "https://dfa3-203-192-244-136.ngrok-free.app",
+  baseURL: "http://localhost:3001",
 })
 
 export const makeRequestWithQS = async <T> (

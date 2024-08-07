@@ -9,11 +9,11 @@ import {Dataset, ProcessedDataset} from "../utils/type";
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   ChartRef,
-  ColDef,
+  ColDef, FilterModel,
   GetContextMenuItemsParams, GridApi,
   GridOptions, GridReadyEvent, IGetRowsParams, IServerSideDatasource, IServerSideGetRowsParams,
   MenuItemDef,
-  RowModelType,
+  RowModelType, SetFilterValuesFuncParams,
   SideBarDef
 } from 'ag-grid-community';
 import { ModuleRegistry } from "@ag-grid-community/core";
@@ -56,27 +56,44 @@ export class AgchartRevisedComponent {
   rowData: any[] = [];
 
   // Column Definitions: Defines the columns to be displayed.
+
   colDefs: ColDef[] = [
     { field: "Name" },
     { field: "Emission" },
     {
       field: "Reported Date",
-      filter: 'agNumberColumnFilter',
     },
     { field: "Category",
       filter: "agSetColumnFilter",
+      filterParams: {
+        values: (params: SetFilterValuesFuncParams) => {
+          makeRequest({
+            method: "GET",
+            url: "/categories"
+          })
+            .then(({data}) => params.success(data?.results || []))
+        }
+      }
     },
     {
       field: "Market",
       filter: "agSetColumnFilter",
+      filterParams: {
+        filterType: 'set',
+        values: ['EU', "USA", "China"]
+      }
     }
   ];
 
   constructor(private spinner: NgxSpinnerService) {
+    this.spinner.show()
     overViewChartDataset()
       .then(({data: overViewChartDate}) => {
         if(!this.options)
           this.options = this.createInitialOverviewChart(overViewChartDate);
+      })
+      .finally(() => {
+        this.spinner.hide()
       })
   }
 
@@ -89,11 +106,24 @@ export class AgchartRevisedComponent {
         const pageSize = endRow - startRow;
         const currentPage = Math.floor(startRow / pageSize) + 1;
 
-        getChartDataByFilters({
+        const filterModel: any = params?.request?.filterModel || {};
+        console.log(filterModel)
+
+        const options: Record<string, any> = {
           ...filters,
           page: currentPage,
           limit: 100
-        }).then((rows) => {
+        }
+
+        if(filterModel?.Market) {
+          options["market"] = filterModel?.Market?.values
+        }
+
+        if(filterModel?.Category) {
+          options["category"] = filterModel?.Category?.values
+        }
+
+        getChartDataByFilters(options).then((rows) => {
           params.success({
             rowData: rows
           })
@@ -128,7 +158,7 @@ export class AgchartRevisedComponent {
       });
   }
 
-  initializeGridOptions(datasource: IServerSideDatasource) {
+  initializeGridOptions(datasource: IServerSideDatasource, modifyColumnFilters?: {field: string, filter: Record<string, any>}[]) {
     this.gridOptions = {
       rowModelType: "serverSide",
       cacheBlockSize: 100,
@@ -186,8 +216,16 @@ export class AgchartRevisedComponent {
         return isCategoryColumnSelected ? [...customItems, ...defaultItems] : defaultItems
       },
       serverSideDatasource: datasource,
+      columnDefs: this.colDefs,
       onGridReady: (event: GridReadyEvent<any>) => {
         this.gridApi = event.api;
+        if (modifyColumnFilters) {
+          const promise = Promise.all(modifyColumnFilters.map((def) => {
+            return this.gridApi?.setColumnFilterModel(def.field, def.filter)
+          }))
+
+          promise.then(() => this.gridApi?.onFilterChanged())
+        }
       }
     }
   }
@@ -226,10 +264,25 @@ export class AgchartRevisedComponent {
                   year: event?.datum.year
                 });
 
+                const filterModification = [
+                  {
+                    field: "Market",
+                    filter: {
+                      filterType: 'set',
+                      values: [event.yKey]
+                    }
+                  }
+                ]
+
                 if (!this.gridApi) {
-                  this.initializeGridOptions(datasource);
+                  this.initializeGridOptions(datasource, filterModification);
                 } else {
                   this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                  this.gridApi.setColumnFilterModel("Market", {
+                    filterType: 'set',
+                    values: [event.yKey]
+                  })
+                  this.gridApi.onFilterChanged()
                 }
 
                 // Fetch new data for the updated chart
@@ -265,10 +318,35 @@ export class AgchartRevisedComponent {
                               category: event.datum.Category,
                             });
 
+                            alert(event.datum.Category)
+
+                            const filterModification = [
+                              {
+                                field: "Market",
+                                filter: {
+                                  filterType: 'set',
+                                  values: ['EU', 'USA', 'China']
+                                }
+                              },
+                              {
+                                field: "Category",
+                                filter: {
+                                  filterType: 'set',
+                                  values: [event.datum.Category]
+                                }
+                              }
+                            ]
+
                             if (!this.gridApi) {
-                              this.initializeGridOptions(datasource);
+
+                              this.initializeGridOptions(datasource, filterModification);
                             } else {
                               this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                              const promise = Promise.all(filterModification.map((def) => {
+                                return this.gridApi?.setColumnFilterModel(def.field, def.filter)
+                              }))
+
+                              promise.then(() => this.gridApi?.onFilterChanged())
                             }
 
                             const newData = await getChartDataByFilters({
@@ -324,6 +402,7 @@ export class AgchartRevisedComponent {
                   ]
                 };
               } catch (err) {
+                console.log(err)
                 alert("Some error occured!")
               } finally {
                 this.spinner.hide()
@@ -359,10 +438,25 @@ export class AgchartRevisedComponent {
                   year: event?.datum.year
                 });
 
+                const filterModification = [
+                  {
+                    field: "Market",
+                    filter: {
+                      filterType: 'set',
+                      values: [event.yKey]
+                    }
+                  }
+                ]
+
                 if (!this.gridApi) {
-                  this.initializeGridOptions(datasource);
+                  this.initializeGridOptions(datasource, filterModification);
                 } else {
                   this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                  this.gridApi.setColumnFilterModel("Market", {
+                    filterType: 'set',
+                    values: [event.yKey]
+                  })
+                  this.gridApi.onFilterChanged()
                 }
 
                 // Fetch new data for the updated chart
@@ -398,10 +492,35 @@ export class AgchartRevisedComponent {
                               category: event.datum.Category,
                             });
 
+                            alert(event.datum.Category)
+
+                            const filterModification = [
+                              {
+                                field: "Market",
+                                filter: {
+                                  filterType: 'set',
+                                  values: ['EU', 'USA', 'China']
+                                }
+                              },
+                              {
+                                field: "Category",
+                                filter: {
+                                  filterType: 'set',
+                                  values: [event.datum.Category]
+                                }
+                              }
+                            ]
+
                             if (!this.gridApi) {
-                              this.initializeGridOptions(datasource);
+
+                              this.initializeGridOptions(datasource, filterModification);
                             } else {
                               this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                              const promise = Promise.all(filterModification.map((def) => {
+                                return this.gridApi?.setColumnFilterModel(def.field, def.filter)
+                              }))
+
+                              promise.then(() => this.gridApi?.onFilterChanged())
                             }
 
                             const newData = await getChartDataByFilters({
@@ -457,6 +576,7 @@ export class AgchartRevisedComponent {
                   ]
                 };
               } catch (err) {
+                console.log(err)
                 alert("Some error occured!")
               } finally {
                 this.spinner.hide()
@@ -492,10 +612,25 @@ export class AgchartRevisedComponent {
                   year: event?.datum.year
                 });
 
+                const filterModification = [
+                  {
+                    field: "Market",
+                    filter: {
+                      filterType: 'set',
+                      values: [event.yKey]
+                    }
+                  }
+                ]
+
                 if (!this.gridApi) {
-                  this.initializeGridOptions(datasource);
+                  this.initializeGridOptions(datasource, filterModification);
                 } else {
                   this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                  this.gridApi.setColumnFilterModel("Market", {
+                    filterType: 'set',
+                    values: [event.yKey]
+                  })
+                  this.gridApi.onFilterChanged()
                 }
 
                 // Fetch new data for the updated chart
@@ -531,10 +666,35 @@ export class AgchartRevisedComponent {
                               category: event.datum.Category,
                             });
 
+                            alert(event.datum.Category)
+
+                            const filterModification = [
+                              {
+                                field: "Market",
+                                filter: {
+                                  filterType: 'set',
+                                  values: ['EU', 'USA', 'China']
+                                }
+                              },
+                              {
+                                field: "Category",
+                                filter: {
+                                  filterType: 'set',
+                                  values: [event.datum.Category]
+                                }
+                              }
+                            ]
+
                             if (!this.gridApi) {
-                              this.initializeGridOptions(datasource);
+
+                              this.initializeGridOptions(datasource, filterModification);
                             } else {
                               this.gridApi?.setGridOption("serverSideDatasource",datasource);
+                              const promise = Promise.all(filterModification.map((def) => {
+                                return this.gridApi?.setColumnFilterModel(def.field, def.filter)
+                              }))
+
+                              promise.then(() => this.gridApi?.onFilterChanged())
                             }
 
                             const newData = await getChartDataByFilters({
@@ -590,6 +750,7 @@ export class AgchartRevisedComponent {
                   ]
                 };
               } catch (err) {
+                console.log(err)
                 alert("Some error occured!")
               } finally {
                 this.spinner.hide()
@@ -639,11 +800,6 @@ export class AgchartRevisedComponent {
       } else {
         this.gridApi?.setGridOption("serverSideDatasource",datasource);
       }
-
-      // this.gridOptions = previousState?.gridOptions || null;
-      // if (this.gridOptions) {
-      //   this.gridApi?.setGridOption("serverSideDatasource", this.gridOptions as any) ;
-      // }
     }
     if(this.stateStack.length === 0) {
       this.gridOptions = null
