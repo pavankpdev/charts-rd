@@ -14,106 +14,144 @@ import {AgBarSeriesItemStylerParams} from "@ag-grid-enterprise/charts-enterprise
 })
 export class AgchartComponent implements AfterViewInit {
   public options: AgChartOptions;
+  public optionsd: any;
   public options2: AgChartOptions;
   public options3: AgChartOptionsE;
+  public colors: Record<string, string> = {
+    'Baseline': '#8B0000',
+    'Reduction': '#FF6347',
+    'Reduced': '#4682B4',
+    'Compensation': '#32CD32',
+    'Compensated': '#FFD700',
+  }
+
   constructor() {
-    this.options = {
+    this.optionsd = {
       height: 600,
       data: [
-        { year: '2024', part1: 25, part2: 71, part3: 4, total: 100 },
-        { year: '2025', part1: 0, part2: 69, part3: 0, total: 69 },
-        { year: '2026', part1: 0, part2: 0, part3: 6, total: 6 },
-        { year: '2027', part1: 0, part2: 0, part3: 0, total: 0 },
-        { year: '2028', part1: 0, part2: 0, part3: 0, total: 0 }
+        { category: 'Baseline', value: 65.51, label: '65,51' },
+        { category: 'Reduction', value: 10.00, label: '10,00' },
+        { category: 'Reduced', value: 55.51, label: '55,51' },
+        { category: 'Compensation', value: 10.00, label: '10,00' },
+        { category: 'Compensated', value: 45.51, label: '45,51' },
       ],
       title: {
-        text: 'Green Energy Management',
+        text: 'DKI IS',
+        fontSize: 18,
       },
       subtitle: {
-        text: 'Last edit 2 days ago',
+        text: 'DKI IS 2024 - Last edit 2 days ago',
+        fontSize: 14,
       },
       // Series: Defines which chart type and data to use
       series: [
         {
           type: 'bar',
-          xKey: 'year',
-          yKey: 'part1',
-          yName: 'Part 1',
+          xKey: 'category',
+          yKey: 'value',
+          yName: 'value',
           stacked: true,
-          fill: '#8B4513',
           stroke: '#8B4513',
-          label: {
-            enabled: true,
-            color: 'white',
-            fontSize: 14,
-            formatter: (params) => `${params.value}%`,
+          fillOpacity: 0.9,
+          fill: '#8B0000', // Dark red color
+          highlightStyle: {
+            item: {
+              fill: '#A52A2A', // Slightly different color for hover effect
+            },
           },
         },
-        {
-          type: 'bar',
-          xKey: 'year',
-          yKey: 'part2',
-          yName: 'Part 2',
-          stacked: true,
-          fill: '#DAA520',
-          stroke: '#DAA520',
-          label: {
-            enabled: true,
-            color: 'white',
-            fontSize: 14,
-            formatter: (params) => `${params.value}%`,
-          },
-        },
-        {
-          type: 'bar',
-          xKey: 'year',
-          yKey: 'part3',
-          yName: 'Part 3',
-          stacked: true,
-          fill: '#FFD700',
-          stroke: '#FFD700',
-          label: {
-            enabled: true,
-            color: 'white',
-            fontSize: 14,
-            formatter: (params) => `${params.value}%`,
-          },
-        },
-        {
-          type: 'line',
-          xKey: 'year',
-          yKey: 'total',
-          yName: 'Total',
-          stroke: '#1E90FF',
-          strokeWidth: 3,
-          marker: {
-            size: 10,
-            fill: '#1E90FF',
-            stroke: '#1E90FF',
-          },
-        }
       ],
       axes: [
         {
           type: 'category',
           position: 'bottom',
-          title: {
-            text: 'Year',
-          },
         },
         {
           type: 'number',
           position: 'left',
           title: {
-            text: 'Percentage (%)',
+            text: '',
           },
           min: 0,
           max: 100,
-          label: {
-            formatter: (params) => `${params.value}%`,
-          },
         },
       ]
+    };
+    this.options = {
+      height: 600,
+      data: [
+        { category: 'Baseline', value: 65.51, label: '65,51', fill: 0 },
+        { category: 'Reduction', value: 10.00, label: '10,00', fill: 55.51 },
+        { category: 'Reduced', value: 55.51, label: '55,51', fill: 0 },
+        { category: 'Compensation', value: 10.00, label: '10,00', fill: 45.51 },
+        { category: 'Compensated', value: 45.51, label: '45,51', fill: 0 },
+      ],
+      title: {
+        text: 'DKI IS',
+        fontSize: 18,
+      },
+      subtitle: {
+        text: 'DKI IS 2024 - Last edit 2 days ago',
+        fontSize: 14,
+      },
+      // Series: Defines which chart type and data to use
+      series: [
+        {
+          type: 'bar',
+          xKey: 'category',
+          yKey: 'fill',
+          yName: 'Fill',
+          stacked: true,
+          fill: 'rgba(0, 0, 0, 0)', // Completely transparent
+          stroke: 'rgba(0, 0, 0, 0)', // Completely transparent
+          label: {
+            enabled: false, // Disable labels for filler
+          },
+        },
+        {
+          type: 'bar',
+          xKey: 'category',
+          yKey: 'value',
+          yName: 'value',
+          stacked: true,
+          stroke: '#8B4513',
+          fillOpacity: 0.9,
+          itemStyler: ({ datum }) => {
+            return {
+              fill: this.colors[datum.category],
+            };
+          },
+          highlightStyle: {
+            item: {
+              fill: '#A52A2A', // Slightly different color for hover effect
+            },
+          },
+          label: {
+            enabled: true,
+            color: 'white',
+            fontSize: 14,
+            formatter: (params) => `${params.value}`,
+          },
+        },
+      ],
+      axes: [
+        {
+          type: 'category',
+          position: 'bottom',
+          paddingInner: 0.05,
+          groupPaddingInner: 1,
+          paddingOuter: 0
+        },
+        {
+          type: 'number',
+          position: 'left',
+          title: {
+            text: '',
+          },
+          min: 0,
+          max: 100,
+        },
+      ],
     };
     this.options2 = {
       data: [
